@@ -3,16 +3,14 @@ import { browser } from 'wxt/browser'
 
 import type { ChatMessage, ToolDefinition } from '../../ai/types'
 
-// Point ONNX Runtime at locally bundled WASM files instead of CDN.
-// Must mutate the existing wasm object — replacing it would detach it from ORT's internal ONNX_ENV.wasm reference.
-// useWasmCache is disabled to prevent Transformers.js from converting URLs to blob: which Chrome's CSP blocks.
+// Point ORT at locally bundled WASM files instead of CDN.
+// Must mutate the existing wasm object (same reference as ORT's internal ONNX_ENV.wasm).
+// String prefix covers ALL ORT modules (asyncify, jsep, jspi…) — an object only covers named keys,
+// leaving the WebGPU JSEP module loading from CDN and silently breaking inference.
+// useWasmCache disabled: with a string prefix the cache path never runs anyway, but keep it explicit.
 const _ortWasm = (env.backends.onnx as any).wasm
 if (_ortWasm) {
-	const _base = (browser.runtime.getURL as (p: string) => string)('/ort/')
-	_ortWasm.wasmPaths = {
-		mjs: `${_base}ort-wasm-simd-threaded.asyncify.mjs`,
-		wasm: `${_base}ort-wasm-simd-threaded.asyncify.wasm`,
-	}
+	_ortWasm.wasmPaths = (browser.runtime.getURL as (p: string) => string)('/ort/')
 }
 env.useWasmCache = false
 
@@ -136,6 +134,10 @@ async function runChat(
 				max_new_tokens: 512,
 				tools,
 				return_full_text: false,
+				do_sample: true,
+				temperature: 0.7,
+				top_p: 0.9,
+				repetition_penalty: 1.15,
 			})
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -227,6 +229,10 @@ async function runChat(
 			max_new_tokens: 512,
 			streamer,
 			return_full_text: false,
+			do_sample: true,
+			temperature: 0.7,
+			top_p: 0.9,
+			repetition_penalty: 1.15,
 		})
 
 		if (!controller.signal.aborted) {
