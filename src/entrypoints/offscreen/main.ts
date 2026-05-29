@@ -9,7 +9,10 @@ type EngineState = 'idle' | 'loading' | 'ready' | 'error'
 let engine: any = null
 let state: EngineState = 'idle'
 let loadedModelId: string | null = null
-let abortControllers = new Map<string, AbortController>()
+let currentProgress = 0
+let currentStatusText = ''
+let currentError = ''
+const abortControllers = new Map<string, AbortController>()
 
 function broadcast(message: object) {
 	browser.runtime.sendMessage(message).catch(() => {
@@ -21,7 +24,13 @@ browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 	if (message.target !== 'offscreen') return
 
 	if (message.type === 'webllm:check') {
-		sendResponse({ state, modelId: loadedModelId })
+		sendResponse({
+			state,
+			modelId: loadedModelId,
+			progress: currentProgress,
+			statusText: currentStatusText,
+			error: currentError,
+		})
 		return
 	}
 
@@ -58,22 +67,29 @@ async function initModel(modelId: string): Promise<void> {
 	if (state === 'loading') return
 
 	state = 'loading'
+	currentProgress = 0
+	currentStatusText = ''
+	currentError = ''
 
 	try {
 		const webllm = await import('@mlc-ai/web-llm')
 		engine = await webllm.CreateMLCEngine(modelId, {
 			initProgressCallback: (info: { progress: number; text: string }) => {
+				currentProgress = info.progress
+				currentStatusText = info.text
 				broadcast({ type: 'webllm:progress', progress: info.progress, status: info.text, modelId })
 			},
 		})
 		loadedModelId = modelId
 		state = 'ready'
+		currentProgress = 1
 		broadcast({ type: 'webllm:ready', modelId })
 	} catch (e) {
 		state = 'error'
+		currentError = e instanceof Error ? e.message : 'Failed to load model'
 		broadcast({
 			type: 'webllm:error',
-			message: e instanceof Error ? e.message : 'Failed to load model',
+			message: currentError,
 		})
 	}
 }

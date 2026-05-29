@@ -4,9 +4,21 @@ import type { ChatMessage, ToolDefinition } from './types'
 export type ToOffscreenMessage =
 	| { type: 'webllm:check'; target: 'offscreen' }
 	| { type: 'webllm:init'; target: 'offscreen'; modelId: string }
-	| { type: 'webllm:chat'; target: 'offscreen'; chatId: string; messages: ChatMessage[]; tools?: ToolDefinition[] }
+	| {
+			type: 'webllm:chat'
+			target: 'offscreen'
+			chatId: string
+			messages: ChatMessage[]
+			tools?: ToolDefinition[]
+	  }
 	| { type: 'webllm:abort'; target: 'offscreen'; chatId: string }
-	| { type: 'webllm:tool_result'; target: 'offscreen'; chatId: string; toolCallId: string; result: string }
+	| {
+			type: 'webllm:tool_result'
+			target: 'offscreen'
+			chatId: string
+			toolCallId: string
+			result: string
+	  }
 
 // Offscreen → Popup (broadcast via chrome.runtime.sendMessage)
 export type FromOffscreenMessage =

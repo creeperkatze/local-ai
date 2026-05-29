@@ -12,7 +12,8 @@ export const TOOLS: ToolMeta[] = [
 	{
 		id: 'get_page_content',
 		name: 'Read page content',
-		description: 'Lets the model read the text of the current web page when it decides it is needed.',
+		description:
+			'Lets the model read the text of the current web page when it decides it is needed.',
 		requiresPermission: true,
 		definition: {
 			type: 'function',

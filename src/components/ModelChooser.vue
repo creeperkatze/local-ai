@@ -96,7 +96,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 import { WEBLLM_MODELS } from '../ai/types'
-import type { AIStatus } from '../composables/useAI'
+import type { AIStatus } from '../composables/useChat'
 import { useModelStore } from '../composables/useModelStore'
 
 const props = defineProps<{

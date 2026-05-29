@@ -1,8 +1,10 @@
-import { onUnmounted, readonly, ref } from 'vue'
+import { onMounted, onUnmounted, readonly, ref } from 'vue'
+import { browser } from 'wxt/browser'
 
-import { createBackend } from '../ai'
+import { WebLLMBackend } from '../ai/backends/webllm'
+import type { FromOffscreenMessage } from '../ai/messages'
 import { TOOLS } from '../ai/tools'
-import type { AIBackend, ChatMessage, Tool } from '../ai/types'
+import type { ChatMessage, Tool } from '../ai/types'
 import { getActiveTabContent } from '../helpers/pageContent'
 import { getSettings } from '../helpers/settings'
 
@@ -24,7 +26,7 @@ export interface UIMessage extends ChatMessage {
 	toolCall?: ToolCallState
 }
 
-export function useAI() {
+export function useChat() {
 	const messages = ref<UIMessage[]>([])
 	const status = ref<AIStatus>('idle')
 	const errorMessage = ref('')
@@ -33,7 +35,7 @@ export function useAI() {
 	const initStatus = ref('')
 	const permissionRequest = ref<PermissionRequest | null>(null)
 
-	let backend: AIBackend | null = null
+	let backend: WebLLMBackend | null = null
 	let abortController: AbortController | null = null
 	let activeTools: Tool[] = []
 
@@ -78,36 +80,74 @@ export function useAI() {
 		})
 	}
 
-	async function initialize(): Promise<void> {
-		status.value = 'initializing'
-		errorMessage.value = ''
-		initProgress.value = 0
-		initStatus.value = 'Checking availability...'
-		activeTools = []
-
-		try {
-			const settings = await getSettings()
-			backend = await createBackend(settings.webllmModel)
-
-			if (!backend) {
-				status.value = 'error'
-				errorMessage.value =
-					'WebGPU is not available. A WebGPU-capable browser and GPU are required.'
-				return
-			}
-
-			activeTools = buildTools(settings.enabledTools)
-
-			initStatus.value = 'Initializing...'
-			await backend.initialize((progress, msg) => {
-				initProgress.value = progress
-				initStatus.value = msg
+	// Persistent listener: syncs this composable instance to whatever the offscreen is doing
+	function onBackgroundMessage(message: FromOffscreenMessage) {
+		if (message.type === 'webllm:progress') {
+			status.value = 'initializing'
+			initProgress.value = message.progress
+			initStatus.value = message.status
+		} else if (message.type === 'webllm:ready') {
+			backend = new WebLLMBackend(message.modelId)
+			void getSettings().then((settings) => {
+				activeTools = buildTools(settings.enabledTools)
 			})
 			status.value = 'ready'
-		} catch (e) {
+		} else if (message.type === 'webllm:error' && !message.chatId) {
 			status.value = 'error'
-			errorMessage.value = e instanceof Error ? e.message : 'Failed to initialize AI backend'
+			errorMessage.value = message.message
 		}
+	}
+
+	// Query the offscreen for its current state and sync — never triggers a new load
+	async function connect(): Promise<void> {
+		errorMessage.value = ''
+
+		try {
+			await browser.runtime.sendMessage({ type: 'ensure-offscreen', target: 'background' })
+		} catch {
+			// background may not be ready yet
+		}
+
+		const state = await browser.runtime
+			.sendMessage({ type: 'webllm:check', target: 'offscreen' })
+			.catch(() => null)
+
+		if (!state) return
+
+		if (state.state === 'ready' && state.modelId) {
+			backend = new WebLLMBackend(state.modelId as string)
+			status.value = 'ready'
+			initProgress.value = 1
+			const settings = await getSettings()
+			activeTools = buildTools(settings.enabledTools)
+		} else if (state.state === 'loading') {
+			status.value = 'initializing'
+			initProgress.value = (state.progress as number) ?? 0
+			initStatus.value = (state.statusText as string) ?? 'Loading…'
+		} else if (state.state === 'error') {
+			status.value = 'error'
+			errorMessage.value = (state.error as string) || 'Failed to load model'
+		} else {
+			// idle — offscreen auto-start will begin loading shortly and broadcast progress
+			status.value = 'initializing'
+			initStatus.value = 'Starting…'
+		}
+	}
+
+	// Load a different model — called after settings have already been saved with the new modelId
+	async function switchModel(): Promise<void> {
+		backend = null
+		status.value = 'initializing'
+		initProgress.value = 0
+		initStatus.value = 'Loading model…'
+		errorMessage.value = ''
+
+		const settings = await getSettings()
+		activeTools = buildTools(settings.enabledTools)
+
+		await browser.runtime
+			.sendMessage({ type: 'webllm:init', target: 'offscreen', modelId: settings.webllmModel })
+			.catch(() => {})
 	}
 
 	async function send(content: string): Promise<void> {
@@ -152,7 +192,13 @@ export function useAI() {
 		messages.value = []
 	}
 
+	onMounted(() => {
+		browser.runtime.onMessage.addListener(onBackgroundMessage)
+		void connect()
+	})
+
 	onUnmounted(() => {
+		browser.runtime.onMessage.removeListener(onBackgroundMessage)
 		abortController?.abort()
 		backend?.destroy()
 	})
@@ -166,7 +212,7 @@ export function useAI() {
 		initStatus,
 		permissionRequest: readonly(permissionRequest),
 		grantPermission,
-		initialize,
+		switchModel,
 		send,
 		stop,
 		clear,

@@ -34,4 +34,3 @@ export async function getActiveTabContent(): Promise<string | null> {
 		return null
 	}
 }
-

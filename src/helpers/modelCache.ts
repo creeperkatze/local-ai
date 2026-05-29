@@ -29,9 +29,7 @@ export async function deleteModelFromCache(modelId: string): Promise<void> {
 			const cache = await caches.open(name)
 			const keys = await cache.keys()
 			await Promise.all(
-				keys
-					.filter((r) => decodeURIComponent(r.url).includes(modelId))
-					.map((r) => cache.delete(r)),
+				keys.filter((r) => decodeURIComponent(r.url).includes(modelId)).map((r) => cache.delete(r)),
 			)
 		}
 	} catch {

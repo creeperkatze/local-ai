@@ -17,7 +17,8 @@
 					>
 						<div class="flex items-center gap-3">
 							<!-- Status dot -->
-							<div class="w-1.5 h-1.5 rounded-full shrink-0 mt-0.5"
+							<div
+								class="w-1.5 h-1.5 rounded-full shrink-0 mt-0.5"
 								:class="cachedIds.has(model.id) ? 'bg-green-500' : 'bg-zinc-300 dark:bg-zinc-600'"
 							/>
 
@@ -28,7 +29,8 @@
 									<span
 										v-if="model.id === currentModelId && cachedIds.has(model.id)"
 										class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-accent-bg text-accent border border-accent-border"
-									>Active</span>
+										>Active</span
+									>
 								</div>
 								<div class="text-xs text-muted mt-0.5">~{{ formatSize(model.sizeMb) }}</div>
 							</div>
@@ -60,7 +62,9 @@
 								<div
 									class="h-full bg-accent rounded-full transition-all duration-300"
 									:class="downloadProgress > 0 ? '' : 'animate-pulse w-full opacity-40'"
-									:style="downloadProgress > 0 ? { width: `${Math.round(downloadProgress * 100)}%` } : {}"
+									:style="
+										downloadProgress > 0 ? { width: `${Math.round(downloadProgress * 100)}%` } : {}
+									"
 								/>
 							</div>
 							<div class="flex items-center justify-between">
@@ -73,7 +77,6 @@
 					</div>
 				</div>
 			</section>
-
 		</div>
 	</div>
 </template>
@@ -82,8 +85,15 @@
 import { WEBLLM_MODELS } from '../../../ai/types'
 import { useModelStore } from '../../../composables/useModelStore'
 
-const { loading, cachedIds, downloadingId, downloadProgress, currentModelId, downloadModel, deleteModel } =
-	useModelStore()
+const {
+	loading,
+	cachedIds,
+	downloadingId,
+	downloadProgress,
+	currentModelId,
+	downloadModel,
+	deleteModel,
+} = useModelStore()
 
 function formatSize(mb: number): string {
 	return mb >= 1000 ? `${(mb / 1000).toFixed(1)} GB` : `${mb} MB`

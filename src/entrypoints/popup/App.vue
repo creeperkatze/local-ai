@@ -61,7 +61,9 @@
 						/>
 						<MarkdownContent v-if="msg.content" :content="msg.content" />
 						<span
-							v-else-if="isStreaming && i === messages.length - 1 && (!msg.toolCall || msg.toolCall.done)"
+							v-else-if="
+								isStreaming && i === messages.length - 1 && (!msg.toolCall || msg.toolCall.done)
+							"
 							class="streaming-cursor"
 							>▋</span
 						>
@@ -71,12 +73,10 @@
 		</div>
 
 		<!-- Permission request -->
-		<div
-			v-if="permissionRequest"
-			class="shrink-0 px-3.5 py-3 border-t border-border bg-surface-2"
-		>
+		<div v-if="permissionRequest" class="shrink-0 px-3.5 py-3 border-t border-border bg-surface-2">
 			<p class="text-xs font-medium text-primary mb-0.5">
-				Allow <span class="text-accent">{{ permissionRequest.toolName }}</span>?
+				Allow <span class="text-accent">{{ permissionRequest.toolName }}</span
+				>?
 			</p>
 			<p class="text-xs text-muted mb-2.5">The model wants to use this tool.</p>
 			<div class="flex gap-2">
@@ -176,9 +176,9 @@ import { browser } from 'wxt/browser'
 
 import MarkdownContent from '../../components/MarkdownContent.vue'
 import ModelChooser from '../../components/ModelChooser.vue'
-import ToolCallMessage from '../../components/ToolCallMessage.vue'
 import Textarea from '../../components/Textarea.vue'
-import { useAI } from '../../composables/useAI'
+import ToolCallMessage from '../../components/ToolCallMessage.vue'
+import { useChat } from '../../composables/useChat'
 
 const {
 	messages,
@@ -189,20 +189,18 @@ const {
 	initStatus,
 	permissionRequest,
 	grantPermission,
-	initialize,
+	switchModel,
 	send,
 	stop,
 	clear,
-} = useAI()
+} = useChat()
 
 const inputText = ref('')
 const messagesEl = ref<HTMLElement | null>(null)
 
-initialize()
-
 async function handleModelChange(): Promise<void> {
 	clear()
-	await initialize()
+	await switchModel()
 }
 
 async function handleSend(): Promise<void> {
