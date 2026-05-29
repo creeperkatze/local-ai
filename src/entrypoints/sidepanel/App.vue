@@ -39,7 +39,7 @@
 			<template v-for="(msg, i) in messages" :key="i">
 				<div v-if="msg.role === 'user'" class="flex justify-end">
 					<div
-						class="max-w-[80%] px-3 py-2 rounded-2xl rounded-tr-sm bg-accent text-white text-sm leading-relaxed"
+						class="max-w-[80%] px-3 py-2 rounded-2xl rounded-tr-sm bg-accent text-primary text-sm leading-relaxed"
 					>
 						{{ msg.content }}
 					</div>
@@ -166,9 +166,10 @@
 
 <script setup lang="ts">
 import { AlertCircle, ArrowUp, RotateCcw, Settings, Square } from '@lucide/vue'
-import Logo from '../../assets/logo.svg?component'
 import { nextTick, ref, watch } from 'vue'
 import { browser } from 'wxt/browser'
+
+import Logo from '../../assets/logo.svg?component'
 
 import MarkdownContent from '../../components/MarkdownContent.vue'
 import ModelChooser from '../../components/ModelChooser.vue'

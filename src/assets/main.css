@@ -19,10 +19,10 @@
 
     --color-control-track: theme(--color-zinc-300);
 
-    --color-accent: theme(--color-violet-500);
-    --color-accent-hover: theme(--color-violet-600);
-    --color-accent-bg: theme(--color-violet-50);
-    --color-accent-border: theme(--color-violet-200);
+    --color-accent: #ff00ff;
+    --color-accent-hover: #cc00cc;
+    --color-accent-bg: #fff0ff;
+    --color-accent-border: #ffb3ff;
 
     --color-success-bg: theme(--color-green-50);
     --color-success-border: theme(--color-green-300);
@@ -52,10 +52,10 @@
 
         --color-control-track: theme(--color-zinc-600);
 
-        --color-accent: theme(--color-violet-400);
-        --color-accent-hover: theme(--color-violet-300);
-        --color-accent-bg: #1e1030;
-        --color-accent-border: #4c2d80;
+        --color-accent: #ff00ff;
+        --color-accent-hover: #ff33ff;
+        --color-accent-bg: #2d002d;
+        --color-accent-border: #990099;
 
         --color-success-bg: #003300;
         --color-success-border: #006600;
