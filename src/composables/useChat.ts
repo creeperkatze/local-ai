@@ -53,9 +53,7 @@ export function useChat() {
 				return [
 					{
 						definition: meta.definition,
-						execute: async () => {
-							const lastMsg = messages.value[messages.value.length - 1]
-
+						execute: async (_args: Record<string, unknown>, toolCallId: string) => {
 							if (meta.requiresPermission) {
 								const allowed = await new Promise<boolean>((resolve) => {
 									permissionRequest.value = { toolId: id, toolName: meta.name, resolve }
@@ -63,13 +61,30 @@ export function useChat() {
 								if (!allowed) return 'The user denied permission to read the page.'
 							}
 
-							if (lastMsg?.role === 'assistant') {
-								lastMsg.toolCall = { name: id, done: false }
+							// Transform the streaming placeholder into the tool-calling assistant message
+							const placeholder = messages.value[messages.value.length - 1]
+							if (placeholder?.role === 'assistant') {
+								placeholder.tool_calls = [
+									{
+										id: toolCallId,
+										type: 'function',
+										function: { name: meta.definition.function.name, arguments: '{}' },
+									},
+								]
+								placeholder.toolCall = { name: id, done: false }
 							}
+
 							const result = (await getActiveTabContent()) ?? 'Page content unavailable.'
-							if (lastMsg?.role === 'assistant') {
-								lastMsg.toolCall = { name: id, done: true }
+
+							if (placeholder?.role === 'assistant') {
+								placeholder.toolCall = { name: id, done: true }
 							}
+
+							// Push the tool result (not rendered by UI — role is 'tool')
+							messages.value.push({ role: 'tool', content: result, tool_call_id: toolCallId })
+							// Push a fresh assistant placeholder for the final streaming response
+							messages.value.push({ role: 'assistant', content: '' })
+
 							return result
 						},
 					},
@@ -160,11 +175,14 @@ export function useChat() {
 
 		abortController = new AbortController()
 
-		const history: ChatMessage[] = messages.value
-			.slice(0, -1)
-			.map((m) => ({ role: m.role, content: m.content }))
-
 		const tools = activeTools.length > 0 ? activeTools : undefined
+
+		const history: ChatMessage[] = messages.value.slice(0, -1).map((m) => {
+			const msg: ChatMessage = { role: m.role, content: m.content }
+			if (m.tool_calls) msg.tool_calls = m.tool_calls
+			if (m.tool_call_id) msg.tool_call_id = m.tool_call_id
+			return msg
+		})
 
 		try {
 			await backend.chat(

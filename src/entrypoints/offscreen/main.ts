@@ -72,13 +72,22 @@ async function initModel(modelId: string): Promise<void> {
 
 	try {
 		const webllm = await import('@mlc-ai/web-llm')
-		engine = await webllm.CreateMLCEngine(modelId, {
-			initProgressCallback: (info: { progress: number; text: string }) => {
-				currentProgress = info.progress
-				currentStatusText = info.text
-				broadcast({ type: 'webllm:progress', progress: info.progress, status: info.text, modelId })
+		engine = await webllm.CreateMLCEngine(
+			modelId,
+			{
+				initProgressCallback: (info: { progress: number; text: string }) => {
+					currentProgress = info.progress
+					currentStatusText = info.text
+					broadcast({
+						type: 'webllm:progress',
+						progress: info.progress,
+						status: info.text,
+						modelId,
+					})
+				},
 			},
-		})
+			{ context_window_size: 8192 },
+		)
 		loadedModelId = modelId
 		state = 'ready'
 		currentProgress = 1

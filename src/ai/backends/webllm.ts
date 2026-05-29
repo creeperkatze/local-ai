@@ -75,7 +75,7 @@ export class WebLLMBackend implements AIBackend {
 								const args = message.args
 									? (JSON.parse(message.args) as Record<string, unknown>)
 									: {}
-								result = await tool.execute(args)
+								result = await tool.execute(args, message.toolCallId)
 							} catch {
 								result = 'Tool execution failed.'
 							}
